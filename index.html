@@ -43,39 +43,53 @@
 
     <script>
         // Your TTN Data Storage API URL
-        const apiUrl = "https://eu1.cloud.thethings.network/api/v3/as/applications/lora-20245/packages/storage/uplink_message";
+        const apiUrl = 'https://eu1.cloud.thethings.network/api/v3/as/applications/lora-20245/packages/storage/uplink_message';
     
         // TTN API Key
         const apiKey = 'Bearer NNSXS.2VI43TNG3KO3VMFLQEIVQHH22LMY4LQZ4DWIXMA.C4WXJTWJSWZRXIXLZKWIT4LIFI6KFKFJ2VLOMJ3ZUWF33MXZJJOQ';
     
         // Function to fetch data from TTN API
         const fetchData = async () => {
-            try {
-                console.log("Fetching data from TTN API...");
-                const response = await fetch(apiUrl, {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': apiKey
-                        // 'Accept': 'application/json'
+            let attempt = 1;
+            const maxAttempts = 5;
+            const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+            while (attempt <= maxAttempts) {
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': apiKey,
+                            'Accept': 'application/json'
+                        }
+                    });
+
+                    if (!response.ok) {
+                        console.error('Response not OK:', response.status, response.statusText);
+                        throw new Error('Failed to fetch data from TTN API');
                     }
-                });
-                if (!response.ok) {
-                    console.error('Response not OK:', response.status, response.statusText);
-                    throw new Error('Failed to fetch data from TTN API');
+
+                    const data = await response.json();
+                    console.log('Fetched Data:', data);
+
+                    if (data.result && data.result[0] && data.result[0].uplink_message) {
+                        const sensorData = data.result[0].uplink_message.decoded_payload;
+                        displayData(sensorData);
+                        return;  // Successfully fetched data, no need to retry
+                    } else {
+                        throw new Error('No valid data found in response');
+                    }
+                } catch (error) {
+                    console.error('Error fetching TTN data:', error);
+                    if (attempt < maxAttempts) {
+                        const waitTime = Math.pow(2, attempt) * 1000; // Exponential backoff
+                        console.log(`Retrying in ${waitTime / 1000} seconds...`);
+                        await delay(waitTime);
+                        attempt++;
+                    } else {
+                        document.getElementById('data-container').innerHTML = `<p style="color: red;">Failed to load data after ${maxAttempts} attempts.</p>`;
+                    }
                 }
-    
-                const data = await response.json();
-                console.log('Fetched Data:', data);
-                
-                if (data.result && data.result[0] && data.result[0].uplink_message) {
-                    const sensorData = data.result[0].uplink_message.decoded_payload;
-                    displayData(sensorData);
-                } else {
-                    throw new Error('No valid data found in response');
-                }
-            } catch (error) {
-                console.error('Error fetching TTN data:', error);
-                document.getElementById('data-container').innerHTML = `<p style="color: red;">Failed to load data. Please try again later.</p>`;
             }
         };
     
@@ -83,10 +97,6 @@
         const displayData = (data) => {
             const container = document.getElementById('data-container');
             container.innerHTML = ''; // Clear previous data
-            if (Object.keys(data).length === 0) {
-                container.innerHTML = '<p>No decoded data available.</p>';
-                return;
-            }
             for (const [key, value] of Object.entries(data)) {
                 const block = document.createElement('div');
                 block.classList.add('data-block');
@@ -98,8 +108,8 @@
             }
         };
     
-        // Fetch data from TTN API every 5 seconds (optional, for live updates)
-        setInterval(fetchData, 10000);
+        // Fetch data from TTN API every 30 seconds (after 5 retry attempts)
+        setInterval(fetchData, 30000);
     
         // Initial fetch
         fetchData();
