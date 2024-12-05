@@ -43,7 +43,7 @@
 
     <script>
         // Your TTN Data Storage API URL
-        const apiUrl = 'https://eu1.cloud.thethings.network/console/applications/lora-20245/devices/lora-node-02/up';
+        const apiUrl = "https://eu1.cloud.thethings.network/api/v3/as/applications/lora-20245/packages/storage/uplink_message";
     
         // TTN API Key
         const apiKey = 'Bearer NNSXS.2VI43TNG3KO3VMFLQEIVQHH22LMY4LQZ4DWIXMA.C4WXJTWJSWZRXIXLZKWIT4LIFI6KFKFJ2VLOMJ3ZUWF33MXZJJOQ';
@@ -61,11 +61,16 @@
                 if (!response.ok) throw new Error('Failed to fetch data from TTN API');
     
                 const data = await response.json();
-                const sensorData = data.uplink_message.decoded_payload;
-                displayData(sensorData);
+                // Check if data is in the correct format
+                if (data.result && data.result[0] && data.result[0].uplink_message) {
+                    const sensorData = data.result[0].uplink_message.decoded_payload;
+                    displayData(sensorData);
+                } else {
+                    throw new Error('No valid data found');
+                }
             } catch (error) {
                 console.error('Error fetching TTN data:', error);
-                document.getElementById('data-container').innerHTML = `<p style="color: red;">Failed to load data.</p>`;
+                document.getElementById('data-container').innerHTML = `<p style="color: red;">Failed to load data. Please try again later.</p>`;
             }
         };
     
@@ -90,7 +95,5 @@
         // Initial fetch
         fetchData();
     </script>
-    
-    
 </body>
 </html>
