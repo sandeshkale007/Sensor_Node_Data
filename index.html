@@ -62,7 +62,6 @@
             displayData(decodedPayload);
         })
         .catch(error => {
-            console.error('Error fetching TTN data:', error);
             document.getElementById('data-container').innerHTML = `<p style="color: red;">Failed to load data.</p>`;
         });
 
