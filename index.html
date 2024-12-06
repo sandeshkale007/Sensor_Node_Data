@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dynamic Sensor Dashboard</title>
+    <title>Sensor Dashboard</title>
     <style>
         /* General Reset */
         * {
@@ -12,105 +12,118 @@
             box-sizing: border-box;
         }
 
-        /* Body and Container Styling */
         body {
             font-family: Arial, sans-serif;
-            background-color: #f4f4f9;
-            color: #333;
+            background-color: #1e1e2f;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
             padding: 20px;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            text-align: center;
         }
 
         .dashboard-container {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 20px;
+            width: 100%;
+            max-width: 1200px;
         }
 
         /* Card Styling */
         .card {
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+            background: #2c2c3e;
+            border-radius: 15px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
             padding: 20px;
             text-align: center;
-            position: relative;
             transition: transform 0.3s, box-shadow 0.3s;
         }
 
         .card:hover {
             transform: translateY(-5px);
-            box-shadow: 0px 8px 12px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
         }
 
-        /* Bin Level Styling */
-        .bin-level-card {
-            background: linear-gradient(to top, #ffcc80, #ffa726);
-        }
-
-        /* Battery Level Styling */
-        .battery-level-card {
-            background: linear-gradient(to top, #a5d6a7, #66bb6a);
-        }
-
-        /* Distance Styling */
-        .distance-card {
-            background: linear-gradient(to top, #90caf9, #42a5f5);
-        }
-
-        /* Temperature Styling */
-        .temperature-card {
-            background: linear-gradient(to top, #ef9a9a, #e57373);
-        }
-
-        /* Humidity Styling */
-        .humidity-card {
-            background: linear-gradient(to top, #b39ddb, #9575cd);
-        }
-
-        /* Location Map Card */
-        .map-card {
-            height: 400px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            background: linear-gradient(to top, #c5cae9, #7986cb);
-        }
-
-        #map {
-            height: 300px;
-            width: 100%;
-            border-radius: 10px;
-            margin-bottom: 10px;
-        }
-
-        .map-card p {
-            margin-top: 10px;
-            font-size: 1.2em;
-            color: #333;
-        }
-
-        /* General Text Styling */
         .card h3 {
-            font-size: 1.4em;
+            font-size: 1.5em;
             margin-bottom: 10px;
         }
 
         .card span {
-            font-size: 2em;
+            font-size: 2.5em;
             font-weight: bold;
-            color: #fff;
+            color: #f9a825;
+        }
+
+        /* Map Styling */
+        #map {
+            height: 200px;
+            width: 100%;
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+
+        /* Floating Animation (Optional) */
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-5px);
+            }
+        }
+
+        .floating {
+            animation: float 3s ease-in-out infinite;
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
 </head>
 <body>
-    <div class="dashboard-container" id="dashboard-container">
-        <!-- Map Container -->
-        <div class="card map-card" id="location-card">
+    <h1>Sensor Dashboard</h1>
+    <div class="dashboard-container">
+        <!-- Bin Level Card -->
+        <div class="card" id="bin-level-card">
+            <h3>Bin Level</h3>
+            <span id="bin-level-value">--</span>
+        </div>
+
+        <!-- Battery Level Card -->
+        <div class="card" id="battery-level-card">
+            <h3>Battery Level</h3>
+            <span id="battery-level-value">--</span>
+        </div>
+
+        <!-- Distance Card -->
+        <div class="card" id="distance-card">
+            <h3>Distance</h3>
+            <span id="distance-value">--</span>
+        </div>
+
+        <!-- Temperature Card -->
+        <div class="card" id="temperature-card">
+            <h3>Temperature</h3>
+            <span id="temperature-value">--</span>
+        </div>
+
+        <!-- Humidity Card -->
+        <div class="card" id="humidity-card">
+            <h3>Humidity</h3>
+            <span id="humidity-value">--</span>
+        </div>
+
+        <!-- Location Card -->
+        <div class="card" id="location-card">
             <h3>Location</h3>
             <div id="map"></div>
-            <p id="location-coordinates">Coordinates: --</p>
+            <p id="location-coordinates" style="margin-top: 10px;">Coordinates: --</p>
         </div>
     </div>
 
@@ -121,7 +134,7 @@
 
         const initMap = () => {
             if (!map) {
-                map = L.map('map').setView([0, 0], 2); // Default to global view
+                map = L.map('map').setView([0, 0], 2); // Default global view
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     maxZoom: 18,
                     attribution: '© OpenStreetMap contributors'
@@ -142,18 +155,6 @@
             document.getElementById('location-coordinates').textContent = `Coordinates: ${latitude}, ${longitude}`;
         };
 
-        // Dynamically Create Cards for Variables
-        const createDynamicCard = (key, value) => {
-            const card = document.createElement('div');
-            card.className = `card ${key}-card`; // Add specific styling based on key
-            card.id = `${key}-card`;
-            card.innerHTML = `
-                <h3>${key.replace(/_/g, ' ').toUpperCase()}</h3>
-                <span id="${key}-value">${value}</span>
-            `;
-            return card;
-        };
-
         // Fetch and Update Data
         const fetchData = async () => {
             try {
@@ -167,7 +168,6 @@
 
                 if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
 
-                // Parse API response
                 const rawData = await response.text();
                 const jsonObjects = rawData.split('\n').filter(line => line.trim() !== '');
                 const lastMessage = JSON.parse(jsonObjects[jsonObjects.length - 1]);
@@ -179,25 +179,16 @@
             }
         };
 
-        // Update UI Function
         const updateUI = (data) => {
-            const container = document.getElementById('dashboard-container');
+            if (data.bin_level) document.getElementById('bin-level-value').textContent = data.bin_level;
+            if (data.battery_level) document.getElementById('battery-level-value').textContent = data.battery_level;
+            if (data.distance_b) document.getElementById('distance-value').textContent = data.distance_b;
+            if (data.temperature) document.getElementById('temperature-value').textContent = `${data.temperature}°C`;
+            if (data.humidity) document.getElementById('humidity-value').textContent = `${data.humidity}%`;
 
-            // Update Map (if location data exists)
+            // Update Map Location
             if (data.location_latitude && data.location_longitude) {
                 updateMap(data.location_latitude, data.location_longitude);
-            }
-
-            // Remove existing dynamic cards
-            const dynamicCards = document.querySelectorAll('.dynamic-card');
-            dynamicCards.forEach(card => card.remove());
-
-            // Create and append cards for all payload variables
-            for (const key in data) {
-                if (key !== 'location_latitude' && key !== 'location_longitude') {
-                    const card = createDynamicCard(key, data[key]);
-                    container.appendChild(card);
-                }
             }
         };
 
