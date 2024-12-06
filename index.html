@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sensor Dashboard</title>
+    <title>ultraSmart Dashboard</title>
     <style>
         /* General Reset */
         * {
@@ -87,12 +87,19 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
 </head>
 <body>
-    <h1>Sensor Dashboard</h1>
+    <h1>Sensor ID : 
+    <span id="device-id">--</span></h1>
     <div class="dashboard-container">
         <!-- Bin Level Card -->
         <div class="card" id="bin-level-card">
             <h3>Bin Level</h3>
             <span id="bin-level-value">--</span>
+        </div>
+        
+        <!-- Bin Level Card -->
+        <div class="card" id="device-position-card">
+            <h3>Device Position State</h3>
+            <span id="device_position_state">--</span>
         </div>
 
         <!-- Battery Level Card -->
@@ -174,10 +181,12 @@
         };
 
         const updateUI = (data) => {
+            if (data.device_ID) document.getElementById('device-id').textContent = data.device_ID;
             if (data.bin_level) document.getElementById('bin-level-value').textContent = data.bin_level;
             if (data.battery_level) document.getElementById('battery-level-value').textContent = data.battery_level;
             if (data.distance_b) document.getElementById('distance-value').textContent = data.distance_b;
             if (data.temperature) document.getElementById('temperature-value').textContent = `${data.temperature}°C`;
+            if (data.positionState) document.getElementById('device_position_state').textContent = `${data.positionState}`;
 
             // Update Map Location
             if (data.latitude && data.longitude) {
