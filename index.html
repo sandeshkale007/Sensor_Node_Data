@@ -113,12 +113,6 @@
             <span id="temperature-value">--</span>
         </div>
 
-        <!-- Humidity Card -->
-        <div class="card" id="humidity-card">
-            <h3>Humidity</h3>
-            <span id="humidity-value">--</span>
-        </div>
-
         <!-- Location Card -->
         <div class="card" id="location-card">
             <h3>Location</h3>
@@ -184,11 +178,10 @@
             if (data.battery_level) document.getElementById('battery-level-value').textContent = data.battery_level;
             if (data.distance_b) document.getElementById('distance-value').textContent = data.distance_b;
             if (data.temperature) document.getElementById('temperature-value').textContent = `${data.temperature}°C`;
-            if (data.humidity) document.getElementById('humidity-value').textContent = `${data.humidity}%`;
 
             // Update Map Location
-            if (data.location_latitude && data.location_longitude) {
-                updateMap(data.location_latitude, data.location_longitude);
+            if (data.latitude && data.longitude) {
+                updateMap(data.latitude, data.longitude);
             }
         };
 
