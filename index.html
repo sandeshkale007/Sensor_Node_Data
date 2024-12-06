@@ -27,14 +27,6 @@
             text-align: center;
         }
 
-        .dashboard-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            width: 100%;
-            max-width: 1200px;
-        }
-
         /* Card Styling */
         .card {
             background: #2c2c3e;
@@ -43,6 +35,11 @@
             padding: 20px;
             text-align: center;
             transition: transform 0.3s, box-shadow 0.3s;
+            height: 300px; /* Make cards square by setting a fixed height */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
         }
 
         .card:hover {
@@ -59,6 +56,15 @@
             font-size: 2.5em;
             font-weight: bold;
             color: #f9a825;
+        }
+
+        /* Adjust Dashboard Grid to better fit square cards */
+        .dashboard-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); /* Make grid items flexible */
+            gap: 20px;
+            width: 100%;
+            max-width: 1200px;
         }
 
         /* Map Styling */
@@ -87,8 +93,16 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
 </head>
 <body>
+    <!-- Last Update Timestamp -->
+    
     <h1>Sensor ID : 
-    <span id="device-id">--</span></h1>
+        <span id="device-id">--</span>
+    </h1>
+    <div id="last-update-card">
+        <p id="last-update-time">--</p>
+    </div>
+    <br>
+    </br>
     <div class="dashboard-container">
         <!-- Bin Level Card -->
         <div class="card" id="bin-level-card">
@@ -175,6 +189,7 @@
                 const payload = lastMessage.result.uplink_message.decoded_payload;
 
                 updateUI(payload);
+                updateTimestamp();  // Update timestamp on each data fetch
             } catch (error) {
                 console.error('Error fetching data:', error);
             }
@@ -193,7 +208,11 @@
                 updateMap(data.latitude, data.longitude);
             }
         };
-
+        const updateTimestamp = () => {
+            const now = new Date();
+            const timestamp = now.toLocaleString();  // This will format the date/time based on the user's locale
+            document.getElementById('last-update-time').textContent = `Last update: ${timestamp}`;
+        };
         // Initialize Map and Fetch Data
         initMap();
         setInterval(fetchData, 10000);
