@@ -3,46 +3,158 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UltraSmart Sensor Data</title>
+    <title>Dynamic Sensor Dashboard</title>
     <style>
+        /* General Reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Body and Container Styling */
         body {
             font-family: Arial, sans-serif;
-            margin: 20px;
             background-color: #f4f4f9;
+            color: #333;
+            padding: 20px;
         }
-        h1 {
+
+        .dashboard-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        /* Card Styling */
+        .card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
             text-align: center;
+            position: relative;
+            transition: transform 0.3s, box-shadow 0.3s;
         }
-        .data-container {
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0px 8px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Bin Level Styling */
+        .bin-level-card {
+            background: linear-gradient(to top, #ffcc80, #ffa726);
+        }
+
+        /* Battery Level Styling */
+        .battery-level-card {
+            background: linear-gradient(to top, #a5d6a7, #66bb6a);
+        }
+
+        /* Distance Styling */
+        .distance-card {
+            background: linear-gradient(to top, #90caf9, #42a5f5);
+        }
+
+        /* Temperature Styling */
+        .temperature-card {
+            background: linear-gradient(to top, #ef9a9a, #e57373);
+        }
+
+        /* Humidity Styling */
+        .humidity-card {
+            background: linear-gradient(to top, #b39ddb, #9575cd);
+        }
+
+        /* Location Map Card */
+        .map-card {
+            height: 400px;
             display: flex;
             flex-direction: column;
-            align-items: center;
+            justify-content: space-between;
+            background: linear-gradient(to top, #c5cae9, #7986cb);
         }
-        .data-block {
-            background-color: #fff;
-            padding: 20px;
-            margin: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            width: 80%;
-            max-width: 600px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        .data-block h2 {
-            font-size: 1.2em;
+
+        #map {
+            height: 300px;
+            width: 100%;
+            border-radius: 10px;
             margin-bottom: 10px;
         }
-        .data-block p {
-            margin: 5px 0;
+
+        .map-card p {
+            margin-top: 10px;
+            font-size: 1.2em;
+            color: #333;
+        }
+
+        /* General Text Styling */
+        .card h3 {
+            font-size: 1.4em;
+            margin-bottom: 10px;
+        }
+
+        .card span {
+            font-size: 2em;
+            font-weight: bold;
+            color: #fff;
         }
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
 </head>
 <body>
-    <h1>UltraSmart Sensor Data</h1>
-    <div class="data-container" id="data-container"></div>
-    <div id="data-container"></div>
+    <div class="dashboard-container" id="dashboard-container">
+        <!-- Map Container -->
+        <div class="card map-card" id="location-card">
+            <h3>Location</h3>
+            <div id="map"></div>
+            <p id="location-coordinates">Coordinates: --</p>
+        </div>
+    </div>
 
     <script>
+        // Initialize Leaflet Map
+        let map = null;
+        let marker = null;
+
+        const initMap = () => {
+            if (!map) {
+                map = L.map('map').setView([0, 0], 2); // Default to global view
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 18,
+                    attribution: '© OpenStreetMap contributors'
+                }).addTo(map);
+            }
+        };
+
+        // Update Map Location
+        const updateMap = (latitude, longitude) => {
+            if (!map) return;
+            const coords = [latitude, longitude];
+            if (!marker) {
+                marker = L.marker(coords).addTo(map);
+            } else {
+                marker.setLatLng(coords);
+            }
+            map.setView(coords, 13);
+            document.getElementById('location-coordinates').textContent = `Coordinates: ${latitude}, ${longitude}`;
+        };
+
+        // Dynamically Create Cards for Variables
+        const createDynamicCard = (key, value) => {
+            const card = document.createElement('div');
+            card.className = `card ${key}-card`; // Add specific styling based on key
+            card.id = `${key}-card`;
+            card.innerHTML = `
+                <h3>${key.replace(/_/g, ' ').toUpperCase()}</h3>
+                <span id="${key}-value">${value}</span>
+            `;
+            return card;
+        };
+
+        // Fetch and Update Data
         const fetchData = async () => {
             try {
                 const response = await fetch("https://eu1.cloud.thethings.network/api/v3/as/applications/lora-20245/packages/storage/uplink_message", {
@@ -52,60 +164,47 @@
                         'Accept': 'application/json'
                     }
                 });
-    
-                if (!response.ok) {
-                    throw new Error(`HTTP Error: ${response.status} ${response.statusText}`);
-                }
-    
-                // Get the raw response as text since it’s multiple JSON objects
+
+                if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+
+                // Parse API response
                 const rawData = await response.text();
-                console.log('Raw API Response:', rawData);
-    
-                // Split the raw response into individual JSON objects
-                const jsonObjects = rawData
-                    .split('\n') // TTN sends JSON objects separated by newlines
-                    .filter(line => line.trim() !== ''); // Remove empty lines
-    
-                // Parse and process each JSON object
-                const dataArray = jsonObjects.map(json => JSON.parse(json));
-    
-                // Display the parsed data
-                displayData(dataArray);
+                const jsonObjects = rawData.split('\n').filter(line => line.trim() !== '');
+                const lastMessage = JSON.parse(jsonObjects[jsonObjects.length - 1]);
+                const payload = lastMessage.result.uplink_message.decoded_payload;
+
+                updateUI(payload);
             } catch (error) {
-                console.error('Error:', error);
-                document.getElementById('data-container').innerHTML = `<p style="color: red;">Failed to load data: ${error.message}</p>`;
+                console.error('Error fetching data:', error);
             }
         };
-    
-        // Function to display parsed data
-        const displayData = (dataArray) => {
-            const container = document.getElementById('data-container');
-            container.innerHTML = ''; // Clear previous content
-    
-            dataArray.forEach((data, index) => {
-                // Extract decoded payload from each message
-                const payload = data.result.uplink_message.decoded_payload;
-    
-                // Create a block for each payload
-                const block = document.createElement('div');
-                block.classList.add('data-block');
-                block.style.margin = '10px 0';
-                block.style.padding = '10px';
-                block.style.border = '1px solid #ccc';
-                block.style.borderRadius = '5px';
-                block.style.backgroundColor = '#f9f9f9';
-                block.innerHTML = `
-                    <h3>Message #${index + 1}</h3>
-                    <pre>${JSON.stringify(payload, null, 4)}</pre>
-                `;
-                container.appendChild(block);
-            });
+
+        // Update UI Function
+        const updateUI = (data) => {
+            const container = document.getElementById('dashboard-container');
+
+            // Update Map (if location data exists)
+            if (data.location_latitude && data.location_longitude) {
+                updateMap(data.location_latitude, data.location_longitude);
+            }
+
+            // Remove existing dynamic cards
+            const dynamicCards = document.querySelectorAll('.dynamic-card');
+            dynamicCards.forEach(card => card.remove());
+
+            // Create and append cards for all payload variables
+            for (const key in data) {
+                if (key !== 'location_latitude' && key !== 'location_longitude') {
+                    const card = createDynamicCard(key, data[key]);
+                    container.appendChild(card);
+                }
+            }
         };
-    
-        // Fetch data on page load
+
+        // Initialize Map and Fetch Data
+        initMap();
+        setInterval(fetchData, 10000);
         fetchData();
     </script>
-    
-    
 </body>
 </html>
