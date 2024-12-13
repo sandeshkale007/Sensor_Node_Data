@@ -241,10 +241,10 @@
         </div>
 
         <!-- Device Position Card -->
-        <div class="card" id="device-position-card">
+        <!-- <div class="card" id="device-position-card">
             <h3>Device Position State</h3>
             <span id="device_position_state">--</span>
-        </div>
+        </div> -->
 
         <!-- Battery Level Card -->
         <div class="card" id="battery-level-card">
@@ -358,17 +358,17 @@
                 const payload = lastMessage.result.uplink_message.decoded_payload;
 
                 updateUI(payload);
-                updateTimestamp();  // Update timestamp on each data fetch
+                updateTimestamp(lastMessage);  // Pass lastMessage to get the timestamp from it
             } catch (error) {
                 console.error('Error fetching data:', error);
             }
         };
 
         const updateUI = (data) => {
-            if (data.device_ID) document.getElementById('device-id').textContent = data.device_ID;
+            if (data.device_addr) document.getElementById('device-id').textContent = data.device_addr;
             if (data.bin_level) document.getElementById('bin-level-value').textContent = data.bin_level;
             if (data.battery_level) document.getElementById('battery-level-value').textContent = data.battery_level;
-            if (data.distance_b) document.getElementById('distance-value').textContent = data.distance_b;
+            if (data.distance) document.getElementById('distance-value').textContent = data.distance;
             if (data.temperature) document.getElementById('temperature-value').textContent = `${data.temperature}°C`;
             if (data.positionState) document.getElementById('device_position_state').textContent = `${data.positionState}`;
 
@@ -378,10 +378,17 @@
             }
         };
 
-        const updateTimestamp = () => {
-            const now = new Date();
-            const timestamp = now.toLocaleString();  // This will format the date/time based on the user's locale
-            document.getElementById('last-update-time').textContent = `Last update: ${timestamp}`;
+        const updateTimestamp = (lastMessage) => {
+            // Assuming the timestamp is available in the lastMessage (e.g., lastMessage.timestamp or lastMessage.result.uplink_message.received_at)
+            const timestamp = lastMessage.result.uplink_message.received_at; // Replace with the correct field if different
+
+            if (timestamp) {
+                const date = new Date(timestamp);
+                const formattedTimestamp = date.toLocaleString();  // Format the timestamp as per the user's locale
+                document.getElementById('last-update-time').textContent = `Last update: ${formattedTimestamp}`;
+            } else {
+                console.error('Timestamp not found in the response');
+            }
         };
 
         // Event listener for the "Send Downlink" button
